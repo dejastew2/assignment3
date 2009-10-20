@@ -29,6 +29,7 @@ char encode(char c, node *treeroot);
 node *bfs(node *root, char searchfor);
 void enqueue(mininode *toadd, mininode **queue);
 mininode *dequeue(mininode **queue);
+void free_queue(mininode *queue);
 
 int main(int argc, char *argv[]) {
 	int infile, outfile;
@@ -197,7 +198,22 @@ node *add_to_tree(node *root, char myc, int mycount) {
 }
 
 char encode(char c, node *treeroot) {
-	return bfs(treeroot, c)->c;
+	char code = 0;
+	node *thenode = bfs(treeroot, c);
+
+	while (thenode->parent != NULL) {
+		if (thenode->parent->left == thenode) {
+			printf("0");
+			code = (code >> 1) & 0x7f;
+		} else {
+			printf("1");
+			code = (code >> 1) | 0x80;
+		}
+		thenode = thenode->parent;
+	}
+	printf(" 0x%x\n", code);
+
+	return thenode->c;
 }
 
 node *bfs(node *root, char searchfor) {
@@ -216,6 +232,7 @@ node *bfs(node *root, char searchfor) {
 
 		if (curmn->n->c == searchfor) {
 			foundnode = curmn->n;
+			free_queue(queue);
 			break;
 		} else {
 			if (curmn->n->left != NULL) {
@@ -237,15 +254,6 @@ node *bfs(node *root, char searchfor) {
 
 	return foundnode;
 
-	/*
-	mininode *queue = NULL;
-	mininode *one = malloc(sizeof(mininode));
-	one->next = NULL;
-	enqueue(one, &queue);
-	dequeue(&queue);
-	dequeue(&queue);
-	return NULL;
-	*/
 }
 
 void enqueue(mininode *toadd, mininode **queue) {
@@ -267,5 +275,14 @@ mininode *dequeue(mininode **queue) {
 		return ret;
 	} else {
 		return NULL;
+	}
+}
+
+void free_queue(mininode *queue) {
+	mininode *temp;
+	while (queue != NULL) {
+		temp = queue;
+		queue = queue->next;
+		free(temp);
 	}
 }
