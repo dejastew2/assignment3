@@ -16,13 +16,24 @@ struct h_node {
 	node *listnext;
 };
 
+typedef struct q_node mininode;
+struct q_node {
+	node *n;
+	mininode *next;
+};
+
 node *build_h_tree(int fdin, int fdout);
 node *list_to_tree(node *root);
 node *add_to_tree(node *root, char myc, int mycount);
+char encode(char c, node *treeroot);
+node *bfs(node *root, char searchfor);
+void enqueue(mininode *toadd, mininode **queue);
+mininode *dequeue(mininode **queue);
 
 int main(int argc, char *argv[]) {
 	int infile, outfile;
 	node *treeroot;
+	char c;
 
 	/* Checks to see if output file arg passed */
 	if (argc > 2) {
@@ -51,9 +62,11 @@ int main(int argc, char *argv[]) {
 	treeroot = build_h_tree(infile, outfile);
 	lseek(infile, 0, SEEK_SET);
 
-	/* printf("%d %d\n", treeroot->c, treeroot->count); */
-
-	/* write(outfile, &c, 1); */
+	/* Compresses file */
+	while (read(infile, &c, sizeof(char)) > 0) {
+		c = encode(c, treeroot);
+		write(outfile, &c, sizeof(char));
+	}
 
 	/* Closes any open files */
 	close(infile);
@@ -78,7 +91,7 @@ node *build_h_tree(int fdin, int fdout) {
 	totalchars = 0;
 
 	/* Builds counters with char counts */
-	while (read(fdin, &c, 1) > 0) {
+	while (read(fdin, &c, sizeof(char)) > 0) {
 		counts[(int)c] ++;
 		totalchars ++;
 	}
@@ -180,5 +193,79 @@ node *add_to_tree(node *root, char myc, int mycount) {
 		return root;
 	} else {
 		return newnode;
+	}
+}
+
+char encode(char c, node *treeroot) {
+	return bfs(treeroot, c)->c;
+}
+
+node *bfs(node *root, char searchfor) {
+	mininode *temp;
+	mininode *curmn;
+	mininode *queue;
+	node *foundnode = NULL;
+
+	curmn = malloc(sizeof(mininode));
+	curmn->n = root;
+	curmn->next = NULL;
+	queue = curmn;
+
+	while (queue != NULL) {
+		curmn = dequeue(&queue);
+
+		if (curmn->n->c == searchfor) {
+			foundnode = curmn->n;
+			break;
+		} else {
+			if (curmn->n->left != NULL) {
+				temp = malloc(sizeof(mininode));
+				temp->n = curmn->n->left;
+				temp->next = NULL;
+				enqueue(temp, &queue);
+			}
+
+			if (curmn->n->right != NULL) {
+				temp = malloc(sizeof(mininode));
+				temp->n = curmn->n->right;
+				temp->next = NULL;
+				enqueue(temp, &queue);
+			}
+		}
+		free(curmn);
+	}
+
+	return foundnode;
+
+	/*
+	mininode *queue = NULL;
+	mininode *one = malloc(sizeof(mininode));
+	one->next = NULL;
+	enqueue(one, &queue);
+	dequeue(&queue);
+	dequeue(&queue);
+	return NULL;
+	*/
+}
+
+void enqueue(mininode *toadd, mininode **queue) {
+	if (*queue != NULL) {
+		mininode *lastmn = *queue;
+		while ((lastmn->next) != NULL)
+			lastmn = lastmn->next;
+
+		lastmn->next = toadd;
+	} else {
+		*queue = toadd;
+	}
+}
+
+mininode *dequeue(mininode **queue) {
+	if (queue != NULL) {
+		mininode *ret = *queue;
+		*queue = (*queue)->next;
+		return ret;
+	} else {
+		return NULL;
 	}
 }
