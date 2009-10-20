@@ -16,7 +16,8 @@ struct h_node {
 	node *listnext;
 };
 
-node *build_h_tree(int fd);
+node *build_h_tree(int fdin, int fdout);
+node *list_to_tree(node *root);
 node *add_to_tree(node *root, char myc, int mycount);
 
 int main(int argc, char *argv[]) {
@@ -47,10 +48,10 @@ int main(int argc, char *argv[]) {
 		exit(1);
 	}
 
-	treeroot = build_h_tree(infile);
+	treeroot = build_h_tree(infile, outfile);
 	lseek(infile, 0, SEEK_SET);
 
-	printf("%d %d\n", treeroot->c, treeroot->count);
+	/* printf("%d %d\n", treeroot->c, treeroot->count); */
 
 	/* write(outfile, &c, 1); */
 
@@ -63,7 +64,7 @@ int main(int argc, char *argv[]) {
 	return 0;
 }
 
-node *build_h_tree(int fd) {
+node *build_h_tree(int fdin, int fdout) {
 	int counts[256];
 	int totalchars;
 	char c;
@@ -77,11 +78,21 @@ node *build_h_tree(int fd) {
 	totalchars = 0;
 
 	/* Builds counters with char counts */
-	while (read(fd, &c, 1) > 0) {
+	while (read(fdin, &c, 1) > 0) {
 		counts[(int)c] ++;
 		totalchars ++;
 	}
 
+	/* Write header to file */
+	write(fdout, &totalchars, sizeof(int));
+	for (i = 0; i < 256; i ++) {
+		if (counts[i] > 0) {
+			write(fdout, &i, sizeof(char));
+			write(fdout, &counts[i], sizeof(int));
+		}
+	}
+
+	/* Build linked list */
 	while (totalchars > 0) {
 		cursmallest = 0;
 		for (i = 0; i < 256; i ++) {
@@ -100,10 +111,20 @@ node *build_h_tree(int fd) {
 		counts[cursmallest] = 0;
 	}
 
+	root = list_to_tree(root);
+
+	return root;
+}
+
+node *list_to_tree(node *root) {
+	node *frontoflist;
+
 	while (root->listnext != NULL) {
 
 		node *lastnode = NULL;
 		node *newnode = malloc(sizeof(node));
+
+		/* printf("Current root: %x with value: %d\n", root->c, root->count); */
 
 		newnode->c = -1;
 		newnode->count = root->count + root->listnext->count;
@@ -119,26 +140,23 @@ node *build_h_tree(int fd) {
 			} else
 				break;
 
-		if (lastnode != NULL) {
-			lastnode->listnext = newnode;
-			root = lastnode;
-		} else {
-			root = newnode;
-		}
-
+		frontoflist = root->listnext->listnext;
 		root->listnext->listnext = NULL;
 		root->listnext->parent = newnode;
 
 		root->listnext = NULL;
 		root->parent = newnode;
 
+		if (lastnode != NULL) {
+			lastnode->listnext = newnode;
+			root = frontoflist;
+		} else {
+			root = newnode;
+		}
+
 	}
 
-	/*
-	for (; root != NULL; root = root->listnext) {
-		printf("%c %d\n", root->c, root->count);
-	}
-	*/
+	/* printf("Current root: %x with value: %d\n", root->c, root->count); */
 
 	return root;
 }
