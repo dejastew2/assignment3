@@ -17,7 +17,7 @@ struct q_node {
 	struct q_node *next;
 };
 
-node *build_h_tree(int fdin, int fdout);
+node *build_h_tree(int counts[], int totalchars);
 
 node *list_to_tree(node *root);
 

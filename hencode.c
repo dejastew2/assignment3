@@ -12,6 +12,7 @@
 #define WRITEONLY O_CREAT | O_WRONLY | O_TRUNC
 #define DEFPERMS S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH
 
+node *create_header(int fdin, int fdout);
 void encode(int fdin, int fdout, node *treeroot);
 
 int main(int argc, char *argv[]) {
@@ -19,40 +20,63 @@ int main(int argc, char *argv[]) {
 	node *treeroot;
 
 	/* Checks to see if output file arg passed */
-	if (argc > 2) {
+	if (argc > 2)
 		outfile = safe_open(argv[2], WRITEONLY, DEFPERMS);
-		if (outfile == -1) {
-			printf("Invalid output file %s\n", argv[2]);
-			exit(1);
-		}
 	/* If no output file specified, use stdout */
-	} else {
+	else
 		outfile = STDOUT_FILENO;
-	}
 
 	/* Checks to see if input file arg passed */
-	if (argc > 1) {
+	if (argc > 1)
 		infile = safe_open(argv[1], O_RDONLY, DEFPERMS);
-		if (infile == -1) {
-			printf("Invalid input file %s\n", argv[1]);
-			exit(1);
-		}
-	} else {
+	else {
 		printf("No file passed!\n");
 		exit(1);
 	}
 
-	treeroot = build_h_tree(infile, outfile);
+	treeroot = create_header(infile, outfile);
 	lseek(infile, 0, SEEK_SET);
 	encode(infile, outfile, treeroot);
 
-	/* Closes any safe_open files */
+	/* Closes any open files */
 	safe_close(infile);
-	if (outfile != STDOUT_FILENO) {
+	if (outfile != STDOUT_FILENO)
 		safe_close(outfile);
-	}
 
 	return 0;
+}
+
+node *create_header(int fdin, int fdout) {
+	int counts[256];
+	int totalchars;
+	int i;
+	char c;
+	node *root;
+	
+	/* Loads the counter array with zeroes */
+	for (i = 0; i < 256; i ++) {
+		counts[i] = 0;
+	}
+	totalchars = 0;
+
+	/* Builds counters with char counts */
+	while (safe_read(fdin, &c, sizeof(char)) > 0) {
+		counts[(int)c] ++;
+		totalchars ++;
+	}
+
+	/* Write header to file */
+	safe_write(fdout, &totalchars, sizeof(int));
+	for (i = 0; i < 256; i ++) {
+		if (counts[i] > 0) {
+			safe_write(fdout, &i, sizeof(char));
+			safe_write(fdout, &counts[i], sizeof(int));
+		}
+	}
+	
+	root = build_h_tree(counts, totalchars);
+	
+	return root;
 }
 
 void encode(int fdin, int fdout, node *treeroot) {
@@ -71,11 +95,11 @@ void encode(int fdin, int fdout, node *treeroot) {
 		}
 		i = 0;
 		while (thenode->parent != NULL) {
-			if (thenode->parent->left == thenode) {
+			if (thenode->parent->left == thenode)
 				parentinfo[i] = 0;
-			} else {
+			else
 				parentinfo[i] = 1;
-			}
+
 			thenode = thenode->parent;
 			i ++;
 		}

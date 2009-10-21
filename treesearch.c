@@ -76,33 +76,9 @@ node *list_to_tree(node *root) {
 	return root;
 }
 
-node *build_h_tree(int fdin, int fdout) {
-	int counts[256];
-	int totalchars;
-	char c;
+node *build_h_tree(int counts[], int totalchars) {
 	int i, cursmallest;
 	node *root = NULL;
-
-	/* Loads the counter array with zeroes */
-	for (i = 0; i < 256; i ++) {
-		counts[i] = 0;
-	}
-	totalchars = 0;
-
-	/* Builds counters with char counts */
-	while (safe_read(fdin, &c, sizeof(char)) > 0) {
-		counts[(int)c] ++;
-		totalchars ++;
-	}
-
-	/* Write header to file */
-	safe_write(fdout, &totalchars, sizeof(int));
-	for (i = 0; i < 256; i ++) {
-		if (counts[i] > 0) {
-			safe_write(fdout, &i, sizeof(char));
-			safe_write(fdout, &counts[i], sizeof(int));
-		}
-	}
 
 	/* Build linked list */
 	while (totalchars > 0) {
