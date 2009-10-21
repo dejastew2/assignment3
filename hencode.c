@@ -48,11 +48,11 @@ int main(int argc, char *argv[]) {
 
 node *create_header(int fdin, int fdout) {
 	int counts[256];
-	int totalchars;
+	int totalchars, distinctchars;
 	int i;
 	char c;
 	node *root;
-	
+
 	/* Loads the counter array with zeroes */
 	for (i = 0; i < 256; i ++) {
 		counts[i] = 0;
@@ -65,17 +65,23 @@ node *create_header(int fdin, int fdout) {
 		totalchars ++;
 	}
 
+	distinctchars = 0;
+	for (i = 0; i < 256; i ++) {
+		if (counts[i] > 0)
+			distinctchars ++;
+	}
+
 	/* Write header to file */
-	safe_write(fdout, &totalchars, sizeof(int));
+	safe_write(fdout, &distinctchars, sizeof(int));
 	for (i = 0; i < 256; i ++) {
 		if (counts[i] > 0) {
 			safe_write(fdout, &i, sizeof(char));
 			safe_write(fdout, &counts[i], sizeof(int));
 		}
 	}
-	
+
 	root = build_h_tree(counts, totalchars);
-	
+
 	return root;
 }
 

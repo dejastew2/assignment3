@@ -11,6 +11,7 @@
 
 #define WRITEONLY O_CREAT | O_WRONLY | O_TRUNC
 #define DEFPERMS S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH
+#define BLOCKSIZE 4096
 
 node *read_header(int fdin, int fdout);
 void decode(int fdin, int fdout, node *treeroot);
@@ -36,12 +37,10 @@ int main(int argc, char *argv[]) {
 		infile = STDIN_FILENO;
 	}
 
-	/*
-	treeroot = read_tree(infile, outfile);
+	treeroot = read_header(infile, outfile);
 	decode(infile, outfile, treeroot);
-	*/
-	
-	/* Closes any open files */	
+
+	/* Closes any open files */
 	if (infile != STDIN_FILENO)
 		safe_close(infile);
 	if (outfile != STDOUT_FILENO)
@@ -56,78 +55,64 @@ node *read_header(int fdin, int fdout) {
 	int i, tempcount;
 	char c;
 	node *root;
-	
+
 	/* Loads the counter array with zeroes */
 	for (i = 0; i < 256; i ++) {
 		counts[i] = 0;
 	}
 	totalchars = 0;
 
-	safe_read(fdin, &totalchars, sizeof(int));
-	
-	temptcs = totalchars;
+	safe_read(fdin, &temptcs, sizeof(int));
+
 	while (temptcs > 0) {
 		safe_read(fdin, &c, sizeof(char));
 		safe_read(fdin, &tempcount, sizeof(int));
 		counts[(int)c] = tempcount;
-		temptcs -= tempcount;
+		totalchars += tempcount;
+		temptcs -= 1;
 	}
-	
+
 	root = build_h_tree(counts, totalchars);
-	
+
 	return root;
 }
 
 void decode(int fdin, int fdout, node *treeroot) {
-	char code = 0;
-	int location = 0;
-	char c;
-	int parentinfo[8];
-	int i;
+	char c[BLOCKSIZE];
+	char o[BLOCKSIZE];
+	int read_size;
+	int cur_write_size = 0;
+	int i, j;
 
-	while (safe_read(fdin, &c, sizeof(char)) > 0) {
+	node *thenode = treeroot;
 
-		node *thenode = bfs(treeroot, c);
+	while ((read_size = safe_read(fdin, &c, BLOCKSIZE)) > 0) {
 
-		for (i = 0; i < 8; i ++) {
-			parentinfo[i] = -1;
-		}
-		i = 0;
-		while (thenode->parent != NULL) {
-			if (thenode->parent->left == thenode)
-				parentinfo[i] = 0;
-			else
-				parentinfo[i] = 1;
+		for (i = 0; i < read_size; i ++) {
+			for (j = 0; j < 8; j ++) {
 
-			thenode = thenode->parent;
-			i ++;
-		}
-
-		for (i = 7; i >= 0; i --) {
-			if (parentinfo[i] > -1) {
-				if (parentinfo[i] == 0)
-					code = (code << 1) & 0xfe;
-				else
-					code = (code << 1) | 0x01;
-
-				/* printf("   %d => 0x%x\n", parentinfo[i], code); */
-				location ++;
-				if (location > 7) {
-					/* printf(" 0x%x\n", code); */
-					safe_write(fdout, &code, sizeof(char));
-					location = 0;
-					code = 0;
+				if ((c[i] & 0x80) == 0x00) {
+					thenode = thenode->left;
+				} else {
+					thenode = thenode->right;
 				}
+
+				if (thenode->c > -1) {
+					o[cur_write_size] = thenode->c;
+					cur_write_size ++;
+					thenode = treeroot;
+
+					if (cur_write_size == BLOCKSIZE) {
+						safe_write(fdout, o, BLOCKSIZE);
+						cur_write_size = 0;
+					}
+				}
+				c[i] = c[i] << 1;
 			}
 		}
-
 	}
 
-	if (location != 0) {
-		for (i = location; i < 8; i ++)
-			code = (code << 1) & 0xfe;
+	safe_write(fdout, o, cur_write_size);
 
-		safe_write(fdout, &code, sizeof(char));
-	}
 }
 

@@ -50,24 +50,24 @@ node *list_to_tree(node *root) {
 		newnode->listnext = root->listnext->listnext;
 		while (newnode->listnext != NULL)
 			if (newnode->listnext->count < newnode->count) {
-			lastnode = newnode->listnext;
-			newnode->listnext = newnode->listnext->listnext;
+				lastnode = newnode->listnext;
+				newnode->listnext = newnode->listnext->listnext;
 			} else
 				break;
 
-				frontoflist = root->listnext->listnext;
-				root->listnext->listnext = NULL;
-				root->listnext->parent = newnode;
+		frontoflist = root->listnext->listnext;
+		root->listnext->listnext = NULL;
+		root->listnext->parent = newnode;
 
-				root->listnext = NULL;
-				root->parent = newnode;
+		root->listnext = NULL;
+		root->parent = newnode;
 
-				if (lastnode != NULL) {
-					lastnode->listnext = newnode;
-					root = frontoflist;
-				} else {
-					root = newnode;
-				}
+		if (lastnode != NULL) {
+			lastnode->listnext = newnode;
+			root = frontoflist;
+		} else {
+			root = newnode;
+		}
 
 	}
 
