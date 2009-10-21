@@ -1,6 +1,20 @@
 #ifndef TREESEARCH_H_INCLUDED
 #define TREESEARCH_H_INCLUDED
 
+struct h_node {
+	int c;
+	int count;
+	struct h_node *left;
+	struct h_node *right;
+	struct h_node *parent;
+	struct h_node *listnext;
+};
+
+struct q_node {
+	struct h_node *n;
+	struct q_node *next;
+};
+
 struct h_node *build_h_tree(int fdin, int fdout);
 
 struct h_node *list_to_tree(struct h_node *root);

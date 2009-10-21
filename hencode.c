@@ -9,15 +9,6 @@
 #include <fcntl.h>
 #include <unistd.h>
 
-struct h_node {
-	int c;
-	int count;
-	struct h_node *left;
-	struct h_node *right;
-	struct h_node *parent;
-	struct h_node *listnext;
-};
-
 void encode(int fdin, int fdout, struct h_node *treeroot);
 
 int main(int argc, char *argv[]) {

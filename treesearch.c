@@ -1,3 +1,4 @@
+#include "treesearch.h"
 #include "safefunctions.h"
 
 #include <stdio.h>
@@ -8,19 +9,72 @@
 #include <fcntl.h>
 #include <unistd.h>
 
-struct h_node {
-	int c;
-	int count;
-	struct h_node *left;
-	struct h_node *right;
-	struct h_node *parent;
-	struct h_node *listnext;
-};
+struct h_node *add_to_tree(struct h_node *root, char myc, int mycount) {
+	struct h_node *newnode;
+	struct h_node *temp;
 
-struct q_node {
-	struct h_node *n;
-	struct q_node *next;
-};
+	newnode = malloc(sizeof(struct h_node));
+	newnode->c = myc;
+	newnode->count = mycount;
+	newnode->left = NULL;
+	newnode->right = NULL;
+	newnode->parent = NULL;
+	newnode->listnext = NULL;
+
+	if (root) {
+		for (temp = root; temp->listnext != NULL; temp = temp->listnext)
+			;
+		temp->listnext = newnode;
+		return root;
+	} else {
+		return newnode;
+	}
+}
+
+struct h_node *list_to_tree(struct h_node *root) {
+	struct h_node *frontoflist;
+
+	while (root->listnext != NULL) {
+
+		struct h_node *lastnode = NULL;
+		struct h_node *newnode = malloc(sizeof(struct h_node));
+
+		/* printf("Current root: %x with value: %d\n", root->c, root->count); */
+
+		newnode->c = -1;
+		newnode->count = root->count + root->listnext->count;
+		newnode->left = root;
+		newnode->right = root->listnext;
+		newnode->parent = NULL;
+
+		newnode->listnext = root->listnext->listnext;
+		while (newnode->listnext != NULL)
+			if (newnode->listnext->count < newnode->count) {
+			lastnode = newnode->listnext;
+			newnode->listnext = newnode->listnext->listnext;
+			} else
+				break;
+
+				frontoflist = root->listnext->listnext;
+				root->listnext->listnext = NULL;
+				root->listnext->parent = newnode;
+
+				root->listnext = NULL;
+				root->parent = newnode;
+
+				if (lastnode != NULL) {
+					lastnode->listnext = newnode;
+					root = frontoflist;
+				} else {
+					root = newnode;
+				}
+
+	}
+
+	/* printf("Current root: %x with value: %d\n", root->c, root->count); */
+
+	return root;
+}
 
 struct h_node *build_h_tree(int fdin, int fdout) {
 	int counts[256];
@@ -74,70 +128,34 @@ struct h_node *build_h_tree(int fdin, int fdout) {
 	return root;
 }
 
-struct h_node *list_to_tree(struct h_node *root) {
-	struct h_node *frontoflist;
+void enqueue(struct q_node *toadd, struct q_node **queue) {
+	if (*queue != NULL) {
+		struct q_node *lastmn = *queue;
+		while ((lastmn->next) != NULL)
+			lastmn = lastmn->next;
 
-	while (root->listnext != NULL) {
-
-		struct h_node *lastnode = NULL;
-		struct h_node *newnode = malloc(sizeof(struct h_node));
-
-		/* printf("Current root: %x with value: %d\n", root->c, root->count); */
-
-		newnode->c = -1;
-		newnode->count = root->count + root->listnext->count;
-		newnode->left = root;
-		newnode->right = root->listnext;
-		newnode->parent = NULL;
-
-		newnode->listnext = root->listnext->listnext;
-		while (newnode->listnext != NULL)
-			if (newnode->listnext->count < newnode->count) {
-				lastnode = newnode->listnext;
-				newnode->listnext = newnode->listnext->listnext;
-			} else
-				break;
-
-		frontoflist = root->listnext->listnext;
-		root->listnext->listnext = NULL;
-		root->listnext->parent = newnode;
-
-		root->listnext = NULL;
-		root->parent = newnode;
-
-		if (lastnode != NULL) {
-			lastnode->listnext = newnode;
-			root = frontoflist;
-		} else {
-			root = newnode;
-		}
-
+		lastmn->next = toadd;
+	} else {
+		*queue = toadd;
 	}
-
-	/* printf("Current root: %x with value: %d\n", root->c, root->count); */
-
-	return root;
 }
 
-struct h_node *add_to_tree(struct h_node *root, char myc, int mycount) {
-	struct h_node *newnode;
-	struct h_node *temp;
-
-	newnode = malloc(sizeof(struct h_node));
-	newnode->c = myc;
-	newnode->count = mycount;
-	newnode->left = NULL;
-	newnode->right = NULL;
-	newnode->parent = NULL;
-	newnode->listnext = NULL;
-
-	if (root) {
-		for (temp = root; temp->listnext != NULL; temp = temp->listnext)
-			;
-		temp->listnext = newnode;
-		return root;
+struct q_node *dequeue(struct q_node **queue) {
+	if (queue != NULL) {
+		struct q_node *ret = *queue;
+		*queue = (*queue)->next;
+		return ret;
 	} else {
-		return newnode;
+		return NULL;
+	}
+}
+
+void free_queue(struct q_node *queue) {
+	struct q_node *temp;
+	while (queue != NULL) {
+		temp = queue;
+		queue = queue->next;
+		free(temp);
 	}
 }
 
@@ -181,33 +199,3 @@ struct h_node *bfs(struct h_node *root, char searchfor) {
 
 }
 
-void enqueue(struct q_node *toadd, struct q_node **queue) {
-	if (*queue != NULL) {
-		struct q_node *lastmn = *queue;
-		while ((lastmn->next) != NULL)
-			lastmn = lastmn->next;
-
-		lastmn->next = toadd;
-	} else {
-		*queue = toadd;
-	}
-}
-
-struct q_node *dequeue(struct q_node **queue) {
-	if (queue != NULL) {
-		struct q_node *ret = *queue;
-		*queue = (*queue)->next;
-		return ret;
-	} else {
-		return NULL;
-	}
-}
-
-void free_queue(struct q_node *queue) {
-	struct q_node *temp;
-	while (queue != NULL) {
-		temp = queue;
-		queue = queue->next;
-		free(temp);
-	}
-}
