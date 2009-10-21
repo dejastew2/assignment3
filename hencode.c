@@ -25,7 +25,7 @@ struct q_node {
 node *build_h_tree(int fdin, int fdout);
 node *list_to_tree(node *root);
 node *add_to_tree(node *root, char myc, int mycount);
-char encode(char c, node *treeroot);
+void encode(int fdin, int fdout, node *treeroot);
 node *bfs(node *root, char searchfor);
 void enqueue(mininode *toadd, mininode **queue);
 mininode *dequeue(mininode **queue);
@@ -34,7 +34,6 @@ void free_queue(mininode *queue);
 int main(int argc, char *argv[]) {
 	int infile, outfile;
 	node *treeroot;
-	char c;
 
 	/* Checks to see if output file arg passed */
 	if (argc > 2) {
@@ -62,12 +61,14 @@ int main(int argc, char *argv[]) {
 
 	treeroot = build_h_tree(infile, outfile);
 	lseek(infile, 0, SEEK_SET);
+	encode(infile, outfile, treeroot);
 
-	/* Compresses file */
+	/*
 	while (read(infile, &c, sizeof(char)) > 0) {
 		c = encode(c, treeroot);
 		write(outfile, &c, sizeof(char));
 	}
+	*/
 
 	/* Closes any open files */
 	close(infile);
@@ -197,23 +198,57 @@ node *add_to_tree(node *root, char myc, int mycount) {
 	}
 }
 
-char encode(char c, node *treeroot) {
+void encode(int fdin, int fdout, node *treeroot) {
 	char code = 0;
-	node *thenode = bfs(treeroot, c);
+	int location = 0;
+	char c;
+	int parentinfo[8];
+	int i;
 
-	while (thenode->parent != NULL) {
-		if (thenode->parent->left == thenode) {
-			printf("0");
-			code = (code >> 1) & 0x7f;
-		} else {
-			printf("1");
-			code = (code >> 1) | 0x80;
+	while (read(fdin, &c, sizeof(char)) > 0) {
+
+		node *thenode = bfs(treeroot, c);
+
+		for (i = 0; i < 8; i ++) {
+			parentinfo[i] = -1;
 		}
-		thenode = thenode->parent;
-	}
-	printf(" 0x%x\n", code);
+		i = 0;
+		while (thenode->parent != NULL) {
+			if (thenode->parent->left == thenode) {
+				parentinfo[i] = 0;
+			} else {
+				parentinfo[i] = 1;
+			}
+			thenode = thenode->parent;
+			i ++;
+		}
 
-	return thenode->c;
+		for (i = 7; i >= 0; i --) {
+			if (parentinfo[i] > -1) {
+				if (parentinfo[i] == 0)
+					code = (code << 1) & 0xfe;
+				else
+					code = (code << 1) | 0x01;
+
+				/* printf("   %d => 0x%x\n", parentinfo[i], code); */
+				location ++;
+				if (location > 7) {
+					/* printf(" 0x%x\n", code); */
+					write(fdout, &code, sizeof(char));
+					location = 0;
+					code = 0;
+				}
+			}
+		}
+
+	}
+
+	if (location != 0) {
+		for (i = location; i < 8; i ++)
+			code = (code << 1) & 0xfe;
+
+		write(fdout, &code, sizeof(char));
+	}
 }
 
 node *bfs(node *root, char searchfor) {
