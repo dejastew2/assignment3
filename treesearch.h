@@ -1,6 +1,7 @@
 #ifndef TREESEARCH_H_INCLUDED
 #define TREESEARCH_H_INCLUDED
 
+typedef struct h_node node;
 struct h_node {
 	int c;
 	int count;
@@ -10,23 +11,24 @@ struct h_node {
 	struct h_node *listnext;
 };
 
+typedef struct q_node mininode;
 struct q_node {
 	struct h_node *n;
 	struct q_node *next;
 };
 
-struct h_node *build_h_tree(int fdin, int fdout);
+node *build_h_tree(int fdin, int fdout);
 
-struct h_node *list_to_tree(struct h_node *root);
+node *list_to_tree(node *root);
 
-struct h_node *add_to_tree(struct h_node *root, char myc, int mycount);
+node *add_to_tree(node *root, char myc, int mycount);
 
-struct h_node *bfs(struct h_node *root, char searchfor);
+node *bfs(node *root, char searchfor);
 
-void enqueue(struct q_node *toadd, struct q_node **queue);
+void enqueue(mininode *toadd, mininode **queue);
 
-struct q_node *dequeue(struct q_node **queue);
+mininode *dequeue(mininode **queue);
 
-void free_queue(struct q_node *queue);
+void free_queue(mininode *queue);
 
 #endif

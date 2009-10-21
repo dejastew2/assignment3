@@ -9,11 +9,11 @@
 #include <fcntl.h>
 #include <unistd.h>
 
-struct h_node *add_to_tree(struct h_node *root, char myc, int mycount) {
-	struct h_node *newnode;
-	struct h_node *temp;
+node *add_to_tree(node *root, char myc, int mycount) {
+	node *newnode;
+	node *temp;
 
-	newnode = malloc(sizeof(struct h_node));
+	newnode = safe_malloc(sizeof(node));
 	newnode->c = myc;
 	newnode->count = mycount;
 	newnode->left = NULL;
@@ -31,13 +31,13 @@ struct h_node *add_to_tree(struct h_node *root, char myc, int mycount) {
 	}
 }
 
-struct h_node *list_to_tree(struct h_node *root) {
-	struct h_node *frontoflist;
+node *list_to_tree(node *root) {
+	node *frontoflist;
 
 	while (root->listnext != NULL) {
 
-		struct h_node *lastnode = NULL;
-		struct h_node *newnode = malloc(sizeof(struct h_node));
+		node *lastnode = NULL;
+		node *newnode = safe_malloc(sizeof(node));
 
 		/* printf("Current root: %x with value: %d\n", root->c, root->count); */
 
@@ -76,12 +76,12 @@ struct h_node *list_to_tree(struct h_node *root) {
 	return root;
 }
 
-struct h_node *build_h_tree(int fdin, int fdout) {
+node *build_h_tree(int fdin, int fdout) {
 	int counts[256];
 	int totalchars;
 	char c;
 	int i, cursmallest;
-	struct h_node *root = NULL;
+	node *root = NULL;
 
 	/* Loads the counter array with zeroes */
 	for (i = 0; i < 256; i ++) {
@@ -90,17 +90,17 @@ struct h_node *build_h_tree(int fdin, int fdout) {
 	totalchars = 0;
 
 	/* Builds counters with char counts */
-	while (read(fdin, &c, sizeof(char)) > 0) {
+	while (safe_read(fdin, &c, sizeof(char)) > 0) {
 		counts[(int)c] ++;
 		totalchars ++;
 	}
 
 	/* Write header to file */
-	write(fdout, &totalchars, sizeof(int));
+	safe_write(fdout, &totalchars, sizeof(int));
 	for (i = 0; i < 256; i ++) {
 		if (counts[i] > 0) {
-			write(fdout, &i, sizeof(char));
-			write(fdout, &counts[i], sizeof(int));
+			safe_write(fdout, &i, sizeof(char));
+			safe_write(fdout, &counts[i], sizeof(int));
 		}
 	}
 
@@ -128,9 +128,9 @@ struct h_node *build_h_tree(int fdin, int fdout) {
 	return root;
 }
 
-void enqueue(struct q_node *toadd, struct q_node **queue) {
+void enqueue(mininode *toadd, mininode **queue) {
 	if (*queue != NULL) {
-		struct q_node *lastmn = *queue;
+		mininode *lastmn = *queue;
 		while ((lastmn->next) != NULL)
 			lastmn = lastmn->next;
 
@@ -140,9 +140,9 @@ void enqueue(struct q_node *toadd, struct q_node **queue) {
 	}
 }
 
-struct q_node *dequeue(struct q_node **queue) {
+mininode *dequeue(mininode **queue) {
 	if (queue != NULL) {
-		struct q_node *ret = *queue;
+		mininode *ret = *queue;
 		*queue = (*queue)->next;
 		return ret;
 	} else {
@@ -150,8 +150,8 @@ struct q_node *dequeue(struct q_node **queue) {
 	}
 }
 
-void free_queue(struct q_node *queue) {
-	struct q_node *temp;
+void free_queue(mininode *queue) {
+	mininode *temp;
 	while (queue != NULL) {
 		temp = queue;
 		queue = queue->next;
@@ -159,13 +159,13 @@ void free_queue(struct q_node *queue) {
 	}
 }
 
-struct h_node *bfs(struct h_node *root, char searchfor) {
-	struct q_node *temp;
-	struct q_node *curmn;
-	struct q_node *queue;
-	struct h_node *foundnode = NULL;
+node *bfs(node *root, char searchfor) {
+	mininode *temp;
+	mininode *curmn;
+	mininode *queue;
+	node *foundnode = NULL;
 
-	curmn = malloc(sizeof(struct q_node));
+	curmn = safe_malloc(sizeof(mininode));
 	curmn->n = root;
 	curmn->next = NULL;
 	queue = curmn;
@@ -179,14 +179,14 @@ struct h_node *bfs(struct h_node *root, char searchfor) {
 			break;
 		} else {
 			if (curmn->n->left != NULL) {
-				temp = malloc(sizeof(struct q_node));
+				temp = safe_malloc(sizeof(mininode));
 				temp->n = curmn->n->left;
 				temp->next = NULL;
 				enqueue(temp, &queue);
 			}
 
 			if (curmn->n->right != NULL) {
-				temp = malloc(sizeof(struct q_node));
+				temp = safe_malloc(sizeof(mininode));
 				temp->n = curmn->n->right;
 				temp->next = NULL;
 				enqueue(temp, &queue);
