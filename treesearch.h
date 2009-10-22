@@ -17,18 +17,28 @@ struct q_node {
 	struct q_node *next;
 };
 
-node *build_h_tree(int counts[], int totalchars);
+/* Generate a node and add it to the linked list */
+node *add_to_list(node *root, char myc, int mycount);
 
+/* Convert a linked list to a search tree */
 node *list_to_tree(node *root);
 
-node *add_to_tree(node *root, char myc, int mycount);
+/* Build tree with char counts */
+node *build_h_tree(int counts[], int totalchars);
 
-node *bfs(node *root, char searchfor);
+/* Destroy a search tree */
+void free_tree(node *root);
 
+/* Enqueue a mininode to a queue */
 void enqueue(mininode *toadd, mininode **queue);
 
+/* Dequeue the next node from a queue */
 mininode *dequeue(mininode **queue);
 
+/* Destroy a queue */
 void free_queue(mininode *queue);
+
+/* Run a breadth-first search on a tree */
+node *bfs(node *root, char searchfor);
 
 #endif

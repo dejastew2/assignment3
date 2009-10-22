@@ -13,7 +13,10 @@
 #define DEFPERMS S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH
 #define BLOCKSIZE 4096
 
+/* Reads header and builds search tree */
 node *read_header(int fdin, int fdout);
+
+/* Decodes fdin to fdout using search tree */
 void decode(int fdin, int fdout, node *treeroot);
 
 int main(int argc, char *argv[]) {
@@ -33,10 +36,10 @@ int main(int argc, char *argv[]) {
 			infile = safe_open(argv[1], O_RDONLY, DEFPERMS);
 		else
 			infile = STDIN_FILENO;
-	else {
+	else
 		infile = STDIN_FILENO;
-	}
 
+	/* Builds search tree and decodes file */
 	treeroot = read_header(infile, outfile);
 	decode(infile, outfile, treeroot);
 
@@ -45,6 +48,9 @@ int main(int argc, char *argv[]) {
 		safe_close(infile);
 	if (outfile != STDOUT_FILENO)
 		safe_close(outfile);
+
+	/* Frees the tree */
+	free_tree(treeroot);
 
 	return 0;
 }
@@ -62,16 +68,22 @@ node *read_header(int fdin, int fdout) {
 	}
 	totalchars = 0;
 
+	/* Reads in the total number of characters */
 	safe_read(fdin, &temptcs, sizeof(int));
 
 	while (temptcs > 0) {
+		/* Reads in the character and the count */
 		safe_read(fdin, &c, sizeof(char));
 		safe_read(fdin, &tempcount, sizeof(int));
+
+		/* Inserts into counts array */
 		counts[(int)c] = tempcount;
+
 		totalchars += tempcount;
 		temptcs -= 1;
 	}
 
+	/* Builds tree */
 	root = build_h_tree(counts, totalchars);
 
 	return root;
@@ -86,32 +98,40 @@ void decode(int fdin, int fdout, node *treeroot) {
 
 	node *thenode = treeroot;
 
-	while ((read_size = safe_read(fdin, &c, BLOCKSIZE)) > 0) {
+	/* Reads the file block by block */
+	while ((read_size = safe_read(fdin, c, BLOCKSIZE)) > 0) {
 
+		/* Moves through each char read into char array */
 		for (i = 0; i < read_size; i ++) {
+			/* Moves through each bit in individual char */
 			for (j = 0; j < 8; j ++) {
-
-				if ((c[i] & 0x80) == 0x00) {
+				/* Moves the search node based on the bit */
+				if ((c[i] & 0x80) == 0x00)
 					thenode = thenode->left;
-				} else {
+				else
 					thenode = thenode->right;
-				}
 
+				/* If we have found a valid char in the tree */
 				if (thenode->c > -1) {
+					/* Write to output char array */
 					o[cur_write_size] = thenode->c;
 					cur_write_size ++;
 					thenode = treeroot;
 
+					/* If we have a block of output ready */
 					if (cur_write_size == BLOCKSIZE) {
 						safe_write(fdout, o, BLOCKSIZE);
 						cur_write_size = 0;
 					}
 				}
+
+				/* Shift next bit into position in char */
 				c[i] = c[i] << 1;
 			}
 		}
 	}
 
+	/* If we have a sub-block left over, write it to fdout */
 	safe_write(fdout, o, cur_write_size);
 
 }

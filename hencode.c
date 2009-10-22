@@ -11,8 +11,12 @@
 
 #define WRITEONLY O_CREAT | O_WRONLY | O_TRUNC
 #define DEFPERMS S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH
+#define BLOCKSIZE 4096
 
+/* Creates the header and builds search tree */
 node *create_header(int fdin, int fdout);
+
+/* Encodes fdin to fdout using search tree */
 void encode(int fdin, int fdout, node *treeroot);
 
 int main(int argc, char *argv[]) {
@@ -34,6 +38,7 @@ int main(int argc, char *argv[]) {
 		exit(1);
 	}
 
+	/* Builds search tree, resets file pointer, then encodes file */
 	treeroot = create_header(infile, outfile);
 	lseek(infile, 0, SEEK_SET);
 	encode(infile, outfile, treeroot);
@@ -42,6 +47,9 @@ int main(int argc, char *argv[]) {
 	safe_close(infile);
 	if (outfile != STDOUT_FILENO)
 		safe_close(outfile);
+
+	/* Frees the tree */
+	free_tree(treeroot);
 
 	return 0;
 }
