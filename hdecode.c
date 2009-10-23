@@ -14,14 +14,15 @@
 #define BLOCKSIZE 4096
 
 /* Reads header and builds search tree */
-node *read_header(int fdin, int fdout);
+node *read_header(int fdin, int fdout, int *totalchars);
 
 /* Decodes fdin to fdout using search tree */
-void decode(int fdin, int fdout, node *treeroot);
+void decode(int fdin, int fdout, node *treeroot, int totalchars);
 
 int main(int argc, char *argv[]) {
 	int infile, outfile;
 	node *treeroot;
+	int totalchars = 0;
 
 	/* Checks to see if output file arg passed */
 	if (argc > 2)
@@ -40,8 +41,8 @@ int main(int argc, char *argv[]) {
 		infile = STDIN_FILENO;
 
 	/* Builds search tree and decodes file */
-	treeroot = read_header(infile, outfile);
-	decode(infile, outfile, treeroot);
+	treeroot = read_header(infile, outfile, &totalchars);
+	decode(infile, outfile, treeroot, totalchars);
 
 	/* Closes any open files */
 	if (infile != STDIN_FILENO)
@@ -55,9 +56,9 @@ int main(int argc, char *argv[]) {
 	return 0;
 }
 
-node *read_header(int fdin, int fdout) {
+node *read_header(int fdin, int fdout, int *totalchars) {
 	int counts[256];
-	int totalchars, temptcs;
+	int temptcs;
 	int i, tempcount;
 	char c;
 	node *root;
@@ -66,7 +67,7 @@ node *read_header(int fdin, int fdout) {
 	for (i = 0; i < 256; i ++) {
 		counts[i] = 0;
 	}
-	totalchars = 0;
+	*totalchars = 0;
 
 	/* Reads in the total number of characters */
 	safe_read(fdin, &temptcs, sizeof(int));
@@ -79,22 +80,23 @@ node *read_header(int fdin, int fdout) {
 		/* Inserts into counts array */
 		counts[(int)c] = tempcount;
 
-		totalchars += tempcount;
+		*totalchars += tempcount;
 		temptcs -= 1;
 	}
 
 	/* Builds tree */
-	root = build_h_tree(counts, totalchars);
+	root = build_h_tree(counts, *totalchars);
 
 	return root;
 }
 
-void decode(int fdin, int fdout, node *treeroot) {
+void decode(int fdin, int fdout, node *treeroot, int totalchars) {
 	char c[BLOCKSIZE];
 	char o[BLOCKSIZE];
 	int read_size;
 	int cur_write_size = 0;
 	int i, j;
+	int num_chars = 0;
 
 	node *thenode = treeroot;
 
@@ -113,16 +115,19 @@ void decode(int fdin, int fdout, node *treeroot) {
 
 				/* If we have found a valid char in the tree */
 				if (thenode->c > -1) {
+					if (num_chars < totalchars) {
 					/* Write to output char array */
 					o[cur_write_size] = thenode->c;
 					cur_write_size ++;
-					thenode = treeroot;
+					num_chars ++;
 
 					/* If we have a block of output ready */
 					if (cur_write_size == BLOCKSIZE) {
 						safe_write(fdout, o, BLOCKSIZE);
 						cur_write_size = 0;
 					}
+					}
+					thenode = treeroot;
 				}
 
 				/* Shift next bit into position in char */

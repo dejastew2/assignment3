@@ -12,6 +12,7 @@
 #define WRITEONLY O_CREAT | O_WRONLY | O_TRUNC
 #define DEFPERMS S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH
 #define BLOCKSIZE 4096
+#define MAXPARENTDEPTH 128
 
 /* Creates the header and builds search tree */
 node *create_header(int fdin, int fdout);
@@ -104,7 +105,7 @@ void encode(int fdin, int fdout, node *treeroot) {
 	char o[BLOCKSIZE];
 	int read_size;
 	int cur_write_size = 0;
-	int parentinfo[8];	/* HOW LONG CAN PARENT CODE BE??? */
+	int parentinfo[MAXPARENTDEPTH];	/* HOW LONG CAN PARENT CODE BE??? */
 	int i, j;		/* DO NEWLINES COUNT AS A CHAR FOR GRADING? */
 
 	while ((read_size = safe_read(fdin, c, BLOCKSIZE)) > 0) {
@@ -113,7 +114,7 @@ void encode(int fdin, int fdout, node *treeroot) {
 			node *thenode = bfs(treeroot, c[j]);
 
 			/* Reset all parent data */
-			for (i = 0; i < 8; i ++) {
+			for (i = 0; i < MAXPARENTDEPTH; i ++) {
 				parentinfo[i] = -1;
 			}
 			i = 0;
@@ -129,7 +130,7 @@ void encode(int fdin, int fdout, node *treeroot) {
 			}
 
 			/* Decode parent info  */
-			for (i = 7; i >= 0; i --) {
+			for (i = (MAXPARENTDEPTH - 1); i >= 0; i --) {
 				/* If parent code exists */
 				if (parentinfo[i] > -1) {
 					/* If zero, push in a zero from right */
