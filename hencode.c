@@ -12,7 +12,7 @@
 #define WRITEONLY O_CREAT | O_WRONLY | O_TRUNC
 #define DEFPERMS S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH
 #define BLOCKSIZE 4096
-#define MAXPARENTDEPTH 128
+#define MAXPARENTDEPTH 256
 
 /* Creates the header and builds search tree */
 node *create_header(int fdin, int fdout);
