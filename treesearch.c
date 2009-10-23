@@ -37,6 +37,7 @@ node *add_to_list(node *root, char myc, int mycount) {
 node *list_to_tree(node *root) {
 	node *frontoflist;
 
+	if (root != NULL) {
 	/* Moves through tree, from smallest to largest */
 	while (root->listnext != NULL) {
 
@@ -76,6 +77,7 @@ node *list_to_tree(node *root) {
 		} else
 			root = newnode;
 
+	}
 	}
 
 	return root;
@@ -199,6 +201,8 @@ void free_tree(node *root) {
 	mininode *curmn;
 	mininode *queue;
 
+	if (root != NULL) {
+	
 	/* Enqueue root node into mininode queue */
 	curmn = safe_malloc(sizeof(mininode));
 	curmn->n = root;
@@ -228,5 +232,6 @@ void free_tree(node *root) {
 		/* Free tree node and queue node */
 		free(curmn->n);
 		free(curmn);
+	}
 	}
 }
