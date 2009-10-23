@@ -97,12 +97,15 @@ void decode(int fdin, int fdout, node *treeroot, int totalchars) {
 	int cur_write_size = 0;
 	int i, j;
 	int num_chars = 0;
+	int blank_file_flag = 1;
 
 	node *thenode = treeroot;
 
 	/* Reads the file block by block */
 	while ((read_size = safe_read(fdin, c, BLOCKSIZE)) > 0) {
 
+		blank_file_flag = 0;
+		
 		/* Moves through each char read into char array */
 		for (i = 0; i < read_size; i ++) {
 			/* Moves through each bit in individual char */
@@ -133,6 +136,22 @@ void decode(int fdin, int fdout, node *treeroot, int totalchars) {
 				/* Shift next bit into position in char */
 				c[i] = c[i] << 1;
 			}
+		}
+	}
+	
+	if (blank_file_flag == 1) {
+		lseek(fdin, 0, SEEK_SET);
+		safe_read(fdin, c, sizeof(int));
+		safe_read(fdin, c, 2);
+		for (i = 0; i < c[1]; i ++) {
+			o[cur_write_size] = c[0];
+			cur_write_size ++;
+			
+			/* If we have a block of output ready */
+			if (cur_write_size == BLOCKSIZE) {
+				safe_write(fdout, o, BLOCKSIZE);
+				cur_write_size = 0;
+			}			
 		}
 	}
 
