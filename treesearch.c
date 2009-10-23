@@ -113,10 +113,6 @@ node *build_h_tree(int counts[], int totalchars) {
 	return root;
 }
 
-void free_tree(node *root) {
-
-}
-
 void enqueue(mininode *toadd, mininode **queue) {
 	/* If we already have a queue */
 	if (*queue != NULL) {
@@ -198,3 +194,39 @@ node *bfs(node *root, char searchfor) {
 
 }
 
+void free_tree(node *root) {
+	mininode *temp;
+	mininode *curmn;
+	mininode *queue;
+
+	/* Enqueue root node into mininode queue */
+	curmn = safe_malloc(sizeof(mininode));
+	curmn->n = root;
+	curmn->next = NULL;
+	queue = curmn;
+
+	/* Perform breadth-first search */
+	while (queue != NULL) {
+		curmn = dequeue(&queue);
+
+		/* If we have a left child, add to end of queue */
+		if (curmn->n->left != NULL) {
+			temp = safe_malloc(sizeof(mininode));
+			temp->n = curmn->n->left;
+			temp->next = NULL;
+			enqueue(temp, &queue);
+		}
+
+		/* If we have a right child, add to end of queue */
+		if (curmn->n->right != NULL) {
+			temp = safe_malloc(sizeof(mininode));
+			temp->n = curmn->n->right;
+			temp->next = NULL;
+			enqueue(temp, &queue);
+		}
+
+		/* Free tree node and queue node */
+		free(curmn->n);
+		free(curmn);
+	}
+}

@@ -26,9 +26,6 @@ node *list_to_tree(node *root);
 /* Build tree with char counts */
 node *build_h_tree(int counts[], int totalchars);
 
-/* Destroy a search tree */
-void free_tree(node *root);
-
 /* Enqueue a mininode to a queue */
 void enqueue(mininode *toadd, mininode **queue);
 
@@ -40,5 +37,8 @@ void free_queue(mininode *queue);
 
 /* Run a breadth-first search on a tree */
 node *bfs(node *root, char searchfor);
+
+/* Destroy a search tree */
+void free_tree(node *root);
 
 #endif
