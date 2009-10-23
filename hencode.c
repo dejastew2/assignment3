@@ -57,8 +57,9 @@ int main(int argc, char *argv[]) {
 node *create_header(int fdin, int fdout) {
 	int counts[256];
 	int totalchars, distinctchars;
+	int read_size;
 	int i;
-	char c;
+	char c[BLOCKSIZE];
 	node *root;
 
 	/* Loads the counter array with zeroes */
@@ -67,12 +68,15 @@ node *create_header(int fdin, int fdout) {
 	}
 	totalchars = 0;
 
-	/* Builds counters with char counts */
-	while (safe_read(fdin, &c, sizeof(char)) > 0) {
-		counts[(int)c] ++;
-		totalchars ++;
+	/* Builds counters with char counts block by block */
+	while ((read_size = safe_read(fdin, c, BLOCKSIZE)) > 0) {
+		for (i = 0; i < read_size; i ++) {
+			counts[(int)(c[i])] ++;
+			totalchars ++;
+		}
 	}
 
+	/* Counts distinct chars */
 	distinctchars = 0;
 	for (i = 0; i < 256; i ++) {
 		if (counts[i] > 0)
@@ -96,53 +100,75 @@ node *create_header(int fdin, int fdout) {
 void encode(int fdin, int fdout, node *treeroot) {
 	char code = 0;
 	int location = 0;
-	char c;
-	int parentinfo[8];
-	int i;
+	char c[BLOCKSIZE];
+	char o[BLOCKSIZE];
+	int read_size;
+	int cur_write_size = 0;
+	int parentinfo[8];	/* HOW LONG CAN PARENT CODE BE??? */
+	int i, j;		/* DO NEWLINES COUNT AS A CHAR FOR GRADING? */
 
-	while (safe_read(fdin, &c, sizeof(char)) > 0) {
+	while ((read_size = safe_read(fdin, c, BLOCKSIZE)) > 0) {
 
-		node *thenode = bfs(treeroot, c);
+		for (j = 0; j < read_size; j ++) {
+			node *thenode = bfs(treeroot, c[j]);
 
-		for (i = 0; i < 8; i ++) {
-			parentinfo[i] = -1;
-		}
-		i = 0;
-		while (thenode->parent != NULL) {
-			if (thenode->parent->left == thenode)
-				parentinfo[i] = 0;
-			else
-				parentinfo[i] = 1;
-
-			thenode = thenode->parent;
-			i ++;
-		}
-
-		for (i = 7; i >= 0; i --) {
-			if (parentinfo[i] > -1) {
-				if (parentinfo[i] == 0)
-					code = (code << 1) & 0xfe;
+			/* Reset all parent data */
+			for (i = 0; i < 8; i ++) {
+				parentinfo[i] = -1;
+			}
+			i = 0;
+			/* Move back up to the root, setting parent code */
+			while (thenode->parent != NULL) {
+				if (thenode->parent->left == thenode)
+					parentinfo[i] = 0;
 				else
-					code = (code << 1) | 0x01;
+					parentinfo[i] = 1;
 
-				/* printf("   %d => 0x%x\n", parentinfo[i], code); */
-				location ++;
-				if (location > 7) {
-					/* printf(" 0x%x\n", code); */
-					safe_write(fdout, &code, sizeof(char));
-					location = 0;
-					code = 0;
+				thenode = thenode->parent;
+				i ++;
+			}
+
+			/* Decode parent info  */
+			for (i = 7; i >= 0; i --) {
+				/* If parent code exists */
+				if (parentinfo[i] > -1) {
+					/* If zero, push in a zero from right */
+					if (parentinfo[i] == 0)
+						code = (code << 1) & 0xfe;
+					/* If one, push in a one from right */
+					else
+						code = (code << 1) | 0x01;
+
+					location ++;
+					/* If at the end of byte, add to o */
+					if (location > 7) {
+						o[cur_write_size] = code;
+						cur_write_size ++;
+						location = 0;
+						code = 0;
+
+					/* If at end of block, write to file */
+					if (cur_write_size == BLOCKSIZE) {
+						safe_write(fdout, o, BLOCKSIZE);
+						cur_write_size = 0;
+					}
+					}
 				}
 			}
 		}
 
 	}
 
+	/* If last byte nonempty, fill with zeros and write to file */
 	if (location != 0) {
 		for (i = location; i < 8; i ++)
 			code = (code << 1) & 0xfe;
 
-		safe_write(fdout, &code, sizeof(char));
+		o[cur_write_size] = code;
+		cur_write_size ++;
 	}
+
+	/* If we have a sub-block left over, write it to fdout */
+	safe_write(fdout, o, cur_write_size);
 }
 
