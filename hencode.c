@@ -60,7 +60,7 @@ node *create_header(int fdin, int fdout) {
 	int totalchars, distinctchars;
 	int read_size;
 	int i, j;
-	char c[BLOCKSIZE];
+	unsigned char c[BLOCKSIZE];
 	node *root;
 
 	/* Loads the counter array with zeroes */
@@ -100,10 +100,10 @@ node *create_header(int fdin, int fdout) {
 }
 
 void encode(int fdin, int fdout, node *treeroot) {
-	char code = 0;
+	unsigned char code = 0;
 	int location = 0;
-	char c[BLOCKSIZE];
-	char o[BLOCKSIZE];
+	unsigned char c[BLOCKSIZE];
+	unsigned char o[BLOCKSIZE];
 	int read_size;
 	int cur_write_size = 0;
 	int parentinfo[MAXPARENTDEPTH];	/* HOW LONG CAN PARENT CODE BE??? */

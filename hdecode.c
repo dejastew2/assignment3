@@ -60,7 +60,7 @@ node *read_header(int fdin, int fdout, int *totalchars) {
 	int counts[256];
 	int temptcs;
 	int i, tempcount;
-	char c;
+	unsigned char c;
 	node *root;
 
 	/* Loads the counter array with zeroes */
@@ -91,8 +91,8 @@ node *read_header(int fdin, int fdout, int *totalchars) {
 }
 
 void decode(int fdin, int fdout, node *treeroot, int totalchars) {
-	char c[BLOCKSIZE];
-	char o[BLOCKSIZE];
+	unsigned char c[BLOCKSIZE];
+	unsigned char o[BLOCKSIZE];
 	int read_size;
 	int cur_write_size = 0;
 	int i, j;
