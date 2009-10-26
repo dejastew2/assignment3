@@ -84,12 +84,13 @@ node *list_to_tree(node *root) {
 }
 
 node *build_h_tree(int counts[], int totalchars) {
-	int i, cursmallest;
+	int i, cursmallest, totalleft;
 	node *root = NULL;
 
 	/* Build linked list */
 	while (totalchars > 0) {
 		cursmallest = 0;
+		totalleft = 0;
 		/* Move through each count to find char with smallest count */
 		for (i = 0; i < 256; i ++) {
 			if (counts[i] > 0) {
@@ -102,11 +103,16 @@ node *build_h_tree(int counts[], int totalchars) {
 				} else
 					cursmallest = i;
 			}
+			totalleft += counts[cursmallest];
 		}
+		if (totalleft > 0) {
 		/* Add smallest char to list, then remove it from array */
 		root = add_to_list(root, cursmallest, counts[cursmallest]);
 		totalchars -= counts[cursmallest];
 		counts[cursmallest] = 0;
+		} else {
+			break;
+		}
 	}
 
 	/* Convert linked list to tree */
@@ -202,7 +208,7 @@ void free_tree(node *root) {
 	mininode *queue;
 
 	if (root != NULL) {
-	
+
 	/* Enqueue root node into mininode queue */
 	curmn = safe_malloc(sizeof(mininode));
 	curmn->n = root;

@@ -59,7 +59,7 @@ node *create_header(int fdin, int fdout) {
 	int counts[256];
 	int totalchars, distinctchars;
 	int read_size;
-	int i;
+	int i, j;
 	char c[BLOCKSIZE];
 	node *root;
 
@@ -79,9 +79,10 @@ node *create_header(int fdin, int fdout) {
 
 	/* Counts distinct chars */
 	distinctchars = 0;
-	for (i = 0; i < 256; i ++) {
-		if (counts[i] > 0)
+	for (j = 0; j < 256; j ++) {
+		if (counts[j] > 0) {
 			distinctchars ++;
+		}
 	}
 
 	/* Write header to file */
